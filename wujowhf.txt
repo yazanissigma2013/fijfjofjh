@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UnblockedHub Games</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --accent:#00d1b2;
+      --muted:#9aa7b2;
+      --glass: rgba(255,255,255,0.03);
+      font-family: Inter,Segoe UI,Roboto,system-ui,-apple-system,"Helvetica Neue",Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background: linear-gradient(180deg,#071022 0%, #081226 40%, #05101a 100%);
+      color:#e6f0f2;
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+      padding:24px;
+    }
+    header{
+      display:flex;
+      gap:18px;
+      align-items:center;
+    }
+    .logo{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      cursor:default;
+    }
+    .logo .badge{
+      width:48px;height:48px;border-radius:10px;
+      background:linear-gradient(135deg,var(--accent),#00a89c);
+      display:flex;align-items:center;justify-content:center;font-weight:700;color:#052b25;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+    }
+    h1{margin:0;font-size:20px}
+    nav{margin-left:auto;display:flex;gap:8px;align-items:center}
+    .btn{
+      background:var(--glass);border:1px solid rgba(255,255,255,0.04);
+      color:var(--accent);padding:8px 12px;border-radius:8px;font-weight:600;
+      cursor:pointer;text-decoration:none;
+    }
+    .container{display:flex;gap:24px;align-items:flex-start}
+    main{flex:1}
+    .hero{
+      background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.02);
+      display:flex;align-items:center;gap:18px;
+    }
+    .hero .info{flex:1}
+    .muted{color:var(--muted);font-size:13px}
+    .grid{
+      margin-top:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+      gap:12px;
+    }
+    .card{
+      background:var(--card);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);
+      display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:transform .12s ease, box-shadow .12s ease;
+    }
+    .card:hover{transform:translateY(-6px);box-shadow:0 12px 34px rgba(2,6,23,0.6)}
+    .thumb{
+      height:110px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.25));
+      display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--muted);font-size:18px;
+      overflow:hidden;
+    }
+    .meta{display:flex;justify-content:space-between;align-items:center}
+    .small{font-size:13px;color:var(--muted)}
+    footer{margin-top:auto;color:var(--muted);font-size:13px;padding-top:12px;border-top:1px dashed rgba(255,255,255,0.02)}
+    /* Search page */
+    .search-panel{background:var(--card);padding:18px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);display:flex;gap:10px;align-items:center}
+    .search-input{flex:1;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+    /* modal / player */
+    .modal{
+      position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+      background:rgba(2,6,23,0.6);z-index:999;padding:20px;backdrop-filter:blur(4px);
+    }
+    .player{
+      width:920px;max-width:100%;height:640px;max-height:100%;background:linear-gradient(180deg,#081726,#041018);
+      border-radius:12px;border:1px solid rgba(255,255,255,0.04);padding:12px;display:flex;flex-direction:column;gap:8px;
+    }
+    .player .toolbar{display:flex;justify-content:space-between;align-items:center}
+    .close{background:transparent;border:0;color:var(--muted);cursor:pointer;font-weight:700}
+    canvas{display:block;background:#000;border-radius:6px;margin:auto}
+    /* responsive */
+    @media (max-width:720px){
+      .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .player{height:80vh}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <div class="badge">UH</div>
+      <div>
+        <h1>UnblockedHub Games</h1>
+        <div class="muted">Play quick HTML5 games — demo site</div>
+      </div>
+    </div>
+
+    <nav>
+      <button class="btn" data-route="home">Home</button>
+      <button class="btn" data-route="games">Games</button>
+      <button class="btn" data-route="unblocked">Unblocked Games</button>
+      <button class="btn" data-route="search">Search</button>
+    </nav>
+  </header>
+
+  <div class="container">
+    <main id="app">
+      <!-- Pages are injected here by JS -->
+    </main>
+  </div>
+
+  <footer>
+    Built with care • Save this file as index.html and open it in your browser to run locally.
+  </footer>
+
+  <script>
+    // Simple client-side router to switch pages
+    const app = document.getElementById('app');
+    const routes = {
+      home: renderHome,
+      games: renderGames,
+      unblocked: renderUnblocked,
+      search: renderSearch
+    };
+
+    document.querySelectorAll('[data-route]').forEach(btn=>{
+      btn.addEventListener('click', ()=> navigate(btn.getAttribute('data-route')));
+    });
+
+    // Make 50 game metadata entries
+    const totalGames = 50;
+    const gamesMeta = Array.from({length: totalGames}, (_,i)=>({
+      id: i+1,
+      title: ['Snake','Pong','Breakout','Brick Bouncer','Space Dodger'][i % 5] + ' ' + (i+1),
+      playable: i < 5, // first 5 are playable demos (we implement 3 playable demos); rest are placeholders
+      demoId: (i % 5) + 1,
+      desc: ['Classic','Arcade','Blocks','Bounce','Avoider'][i % 5]
+    }));
+
+    // Router
+    function navigate(route){
+      if(!routes[route]) route='home';
+      history.replaceState(null,'',`#${route}`);
+      routes[route]();
+    }
+    // Initial route
+    const initial = location.hash.replace('#','') || 'home';
+    navigate(initial);
+
+    // Page renderers
+    function renderHome(){
+      app.innerHTML = `
+        <section class="hero">
+          <div style="width:140px;height:100px;border-radius:10px;background:linear-gradient(135deg,#052b25,#003f3b);display:flex;align-items:center;justify-content:center;font-weight:700">
+            UH Games
+          </div>
+          <div class="info">
+            <h2 style="margin:0">Welcome to UnblockedHub Games</h2>
+            <p class="muted" style="margin-top:8px">A neat demo site with a gallery of games. Click "Games" to view all games or "Search" to search DuckDuckGo.</p>
+            <div style="margin-top:12px;display:flex;gap:8px">
+              <button class="btn" onclick="navigate('games')">View Games</button>
+              <button class="btn" onclick="navigate('search')">DuckDuckGo Search</button>
+            </div>
+          </div>
+        </section>
+
+        <section style="margin-top:16px">
+          <h3 style="margin:0 0 8px 0">Popular</h3>
+          <div class="grid" id="popular-grid"></div>
+        </section>
+      `;
+
+      // Show some featured cards (first 6)
+      const grid = document.getElementById('popular-grid');
+      gamesMeta.slice(0,6).forEach(g=>{
+        const el = document.createElement('div');
+        el.className = 'card';
+        el.innerHTML = `
+          <div class="thumb">${g.title}</div>
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <strong>${g.title}</strong>
+              <span class="small">${g.desc}</span>
+            </div>
+            <div style="margin-top:8px;display:flex;gap:8px">
+              <button class="btn" style="padding:6px 8px" data-id="${g.id}">Play</button>
+              <button class="btn" style="padding:6px 8px;background:transparent;color:var(--muted)" disabled>Share</button>
+            </div>
+          </div>
+        `;
+        grid.appendChild(el);
+        el.querySelector('[data-id]').addEventListener('click', ()=> openGame(g.id));
+      });
+    }
+
+    function renderGames(){
+      app.innerHTML = `
+        <h2 style="margin:0 0 12px 0">All Games (${totalGames})</h2>
+        <div class="grid" id="games-grid"></div>
+      `;
+
+      const grid = document.getElementById('games-grid');
+      gamesMeta.forEach(g=>{
+        const el = document.createElement('div');
+        el.className='card';
+        el.innerHTML = `
+          <div class="thumb" style="background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.25))">
+            <div style="text-align:center;padding:10px">${g.playable ? 'Play' : 'Preview'}</div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <strong>${g.title}</strong>
+              <span class="small">#${g.id}</span>
+            </div>
+            <div style="margin-top:8px;display:flex;gap:8px">
+              <button class="btn" style="padding:8px 10px" data-id="${g.id}">${g.playable ? 'Play' : 'Open'}</button>
+              <a class="btn" style="padding:8px 10px;background:transparent;color:var(--muted);text-decoration:none" href="#" data-preview="${g.id}">Details</a>
+            </div>
+          </div>
+        `;
+        grid.appendChild(el);
+
+        el.querySelector('[data-id]').addEventListener('click', ()=> openGame(g.id));
+        el.querySelector('[data-preview]').addEventListener('click', (ev)=>{
+          ev.preventDefault();
+          alert(`${g.title}\n\nStatus: ${g.playable ? 'Playable demo' : 'Placeholder / external'}`);
+        });
+      });
+    }
+
+    function renderUnblocked(){
+      // This page is a simple curated list of titles and notes (no proxy)
+      app.innerHTML = `
+        <h2 style="margin:0 0 12px 0">Unblocked Games (curated)</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
+          ${gamesMeta.slice(0,12).map(g=>`
+            <div class="card" style="padding:10px">
+              <div style="display:flex;gap:10px;align-items:center">
+                <div style="width:56px;height:48px;background:linear-gradient(90deg,#052b25,#003f3b);border-radius:8px;display:flex;align-items:center;justify-content:center">${g.title.split(' ')[0]}</div>
+                <div style="flex:1">
+                  <strong>${g.title}</strong>
+                  <div class="muted" style="font-size:12px">Playable: ${g.playable ? 'Yes' : 'No'}</div>
+                </div>
+                <div>
+                  <button class="btn" data-id="${g.id}" style="padding:6px 8px">Play</button>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      document.querySelectorAll('[data-id]').forEach(b=>b.addEventListener('click', e=>openGame(Number(e.currentTarget.getAttribute('data-id')))));
+    }
+
+    function renderSearch(){
+      app.innerHTML = `
+        <h2 style="margin:0 0 12px 0">Search (DuckDuckGo)</h2>
+        <div class="search-panel">
+          <form id="ddgForm" action="https://duckduckgo.com/" method="get" target="_blank" style="display:flex;gap:8px;width:100%;align-items:center">
+            <input class="search-input" name="q" placeholder="Search DuckDuckGo (opens in new tab)" required />
+            <button class="btn" style="padding:10px 14px">Search</button>
+          </form>
+          <button class="btn" id="open-ddg">Open DuckDuckGo Homepage</button>
+        </div>
+        <p class="muted" style="margin-top:10px">This opens DuckDuckGo results in a new tab. A full proxy requires a server and is not included for safety & hosting reasons.</p>
+      `;
+      document.getElementById('open-ddg').addEventListener('click', ()=> window.open('https://duckduckgo.com','_blank'));
+    }
+
+    // Game modal / runner
+    let modalEl = null;
+    function openGame(id){
+      const meta = gamesMeta[id-1];
+      // For first 3 demo games, we have playable code:
+      // demoId 1 -> Snake, 2 -> Pong, 3 -> Breakout, 4&5 are placeholders that show "coming soon"
+      const demoId = meta.demoId;
+      showModal(meta.title, demoId);
+    }
+
+    function showModal(title, demoId){
+      // build modal
+      if(modalEl) modalEl.remove();
+      modalEl = document.createElement('div');
+      modalEl.className='modal';
+      modalEl.innerHTML = `
+        <div class="player" role="dialog" aria-modal="true">
+          <div class="toolbar">
+            <div style="display:flex;gap:12px;align-items:center">
+              <strong style="font-size:16px">${title}</strong>
+              <span class="muted" style="font-size:13px">Demo</span>
+            </div>
+            <div>
+              <button class="btn" id="resetBtn" style="margin-right:8px">Restart</button>
+              <button class="close" id="closeBtn">✕</button>
+            </div>
+          </div>
+          <div id="playerArea" style="flex:1;display:flex;align-items:center;justify-content:center;padding:8px"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="muted">Controls: Arrow keys / WASD</div>
+            <div class="muted">Tip: Press ESC to close</div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modalEl);
+      document.getElementById('closeBtn').addEventListener('click', closeModal);
+      document.getElementById('resetBtn').addEventListener('click', ()=> {
+        // restart by re-initializing
+        initPlayer(demoId);
+      });
+
+      // allow ESC to close
+      function escHandler(e){ if(e.key === 'Escape') closeModal(); }
+      document.addEventListener('keydown', escHandler);
+      modalEl._escHandler = escHandler;
+
+      // initialize player
+      initPlayer(demoId);
+    }
+
+    function closeModal(){
+      if(!modalEl) return;
+      // stop any running game loop by removing element (games stop as they reference DOM)
+      if(modalEl._stopInterval) clearInterval(modalEl._stopInterval);
+      if(modalEl._stopRAF) cancelAnimationFrame(modalEl._stopRAF);
+      document.removeEventListener('keydown', modalEl._escHandler);
+      modalEl.remove();
+      modalEl = null;
+    }
+
+    // Basic game implementations (kept compact)
+    function initPlayer(demoId){
+      const area = document.getElementById('playerArea');
+      area.innerHTML = '';
+      if(demoId === 1){
+        // Snake
+        const canvas = document.createElement('canvas');
+        canvas.width = 640; canvas.height = 480;
+        area.appendChild(canvas);
+        runSnake(canvas);
+      } else if(demoId === 2){
+        // Pong
+        const canvas = document.createElement('canvas');
+        canvas.width = 800; canvas.height = 480;
+        area.appendChild(canvas);
+        runPong(canvas);
+      } else if(demoId === 3){
+        // Breakout
+        const canvas = document.createElement('canvas');
+        canvas.width = 760; canvas.height = 480;
+        area.appendChild(canvas);
+        runBreakout(canvas);
+      } else {
+        // placeholder content
+        area.innerHTML = '<div style="text-align:center;color:var(--muted)"><h3>Coming soon</h3><p>Playable demo not included for this item.</p></div>';
+      }
+    }
+
+    // --- Snake ---
+    function runSnake(canvas){
+      const ctx = canvas.getContext('2d');
+      const cell = 16;
+      const cols = Math.floor(canvas.width / cell);
+      const rows = Math.floor(canvas.height / cell);
+      let snake = [{x:Math.floor(cols/2), y:Math.floor(rows/2)}];
+      let dir = {x:1,y:0};
+      let apple = randomPoint();
+      let speed = 8;
+      let tick = 0;
+      let alive = true;
+      document.addEventListener('keydown', keyHandler);
+
+      function keyHandler(e){
+        if(e.key === 'ArrowUp' || e.key === 'w') { if(dir.y===0) dir={x:0,y:-1}; }
+        if(e.key === 'ArrowDown' || e.key === 's') { if(dir.y===0) dir={x:0,y:1}; }
+        if(e.key === 'ArrowLeft' || e.key === 'a') { if(dir.x===0) dir={x:-1,y:0}; }
+        if(e.key === 'ArrowRight' || e.key === 'd') { if(dir.x===0) dir={x:1,y:0}; }
+      }
+
+      function randomPoint(){
+        return {x: Math.floor(Math.random()*cols), y: Math.floor(Math.random()*rows)};
+      }
+
+      function step(){
+        if(!alive) return;
+        tick++;
+        if(tick % Math.floor(60/speed) !== 0) { requestAnimationFrame(step); return; }
+        // move
+        const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
+        // wrap
+        head.x = (head.x + cols) % cols;
+        head.y = (head.y + rows) % rows;
+        // collision with self
+        if(snake.some(s => s.x===head.x && s.y===head.y)){
+          alive=false; render(); return;
+        }
+        snake.unshift(head);
+        // eat apple
+        if(head.x===apple.x && head.y===apple.y){
+          apple = randomPoint();
+          speed = Math.min(18, speed + 0.5);
+        } else {
+          snake.pop();
+        }
+        render();
+        requestAnimationFrame(step);
+      }
+
+      function render(){
+        ctx.fillStyle = '#04060a';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        // apple
+        ctx.fillStyle = '#ff5252';
+        ctx.fillRect(apple.x*cell+2, apple.y*cell+2, cell-4, cell-4);
+        // snake
+        ctx.fillStyle = '#00d1b2';
+        snake.forEach((s,i)=>{
+          ctx.fillStyle = i===0 ? '#00ffc3' : '#00d1b2';
+          ctx.fillRect(s.x*cell+1, s.y*cell+1, cell-2, cell-2);
+        });
+        // HUD
+        ctx.fillStyle = 'rgba(255,255,255,0.06)';
+        ctx.fillRect(0,0,120,28);
+        ctx.fillStyle = '#e6f0f2';
+        ctx.font='14px sans-serif';
+        ctx.fillText('Score: '+(snake.length-1),8,18);
+        if(!alive){
+          ctx.fillStyle = 'rgba(0,0,0,0.6)';
+          ctx.fillRect(0,0,canvas.width,canvas.height);
+          ctx.fillStyle = '#fff';
+          ctx.font='32px sans-serif';
+          ctx.fillText('Game Over', canvas.width/2 - 90, canvas.height/2);
+        }
+      }
+
+      requestAnimationFrame(step);
+      // store stop handle on modal to allow clearing when closing
+      if(modalEl) modalEl._stopRAF = null;
+    }
+
+    // --- Pong ---
+    function runPong(canvas){
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      let paddleH = 80;
+      let leftY = h/2 - paddleH/2, rightY = h/2 - paddleH/2;
+      let ball = {x:w/2,y:h/2, vx:5, vy:2, r:8};
+      let up=false, down=false;
+      document.addEventListener('keydown', e=>{
+        if(e.key==='ArrowUp') up=true;
+        if(e.key==='ArrowDown') down=true;
+      });
+      document.addEventListener('keyup', e=>{
+        if(e.key==='ArrowUp') up=false;
+        if(e.key==='ArrowDown') down=false;
+      });
+
+      function step(){
+        // move paddles
+        if(up) rightY -= 6;
+        if(down) rightY += 6;
+        rightY = Math.max(0, Math.min(h-paddleH, rightY));
+        // simple AI for left paddle
+        leftY += (ball.y - (leftY+paddleH/2)) * 0.08;
+        leftY = Math.max(0, Math.min(h-paddleH, leftY));
+        // move ball
+        ball.x += ball.vx; ball.y += ball.vy;
+        // collisions with top/bottom
+        if(ball.y - ball.r < 0 || ball.y + ball.r > h) ball.vy *= -1;
+        // paddle collision
+        if(ball.x - ball.r < 20 && ball.y > leftY && ball.y < leftY + paddleH){
+          ball.vx *= -1; ball.x = 20 + ball.r;
+        }
+        if(ball.x + ball.r > w-20 && ball.y > rightY && ball.y < rightY + paddleH){
+          ball.vx *= -1; ball.x = w-20 - ball.r;
+        }
+        // score reset if off-screen
+        if(ball.x < 0 || ball.x > w){
+          ball.x = w/2; ball.y = h/2; ball.vx = 5*(Math.random()>0.5?1:-1); ball.vy = 2*(Math.random()>0.5?1:-1);
+        }
+        render();
+        modalEl._stopRAF = requestAnimationFrame(step);
+      }
+
+      function render(){
+        ctx.fillStyle = '#04060a';
+        ctx.fillRect(0,0,w,h);
+        // center line
+        ctx.fillStyle = 'rgba(255,255,255,0.03)';
+        for(let y=10;y<h;y+=34) ctx.fillRect(w/2-1,y,2,18);
+        // paddles
+        ctx.fillStyle = '#00d1b2';
+        ctx.fillRect(10, leftY, 12, paddleH);
+        ctx.fillRect(w-22, rightY, 12, paddleH);
+        // ball
+        ctx.beginPath(); ctx.fillStyle = '#ffd166'; ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+      }
+
+      step();
+    }
+
+    // --- Breakout ---
+    function runBreakout(canvas){
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      let paddle = {x: w/2 - 60, y: h-30, w:120, h:12};
+      let ball = {x: w/2, y: h-60, r:8, vx: 4, vy: -4};
+      const rows = 5, cols = 10;
+      const brickW = Math.floor((w-60)/cols), brickH = 18;
+      let bricks = [];
+      for(let r=0;r<rows;r++){
+        for(let c=0;c<cols;c++){
+          bricks.push({x:30 + c*brickW, y:40 + r*(brickH+6), w:brickW-6, h:brickH, alive:true});
+        }
+      }
+      let left=false,right=false;
+      document.addEventListener('keydown', e=>{ if(e.key==='ArrowLeft') left=true; if(e.key==='ArrowRight') right=true; });
+      document.addEventListener('keyup', e=>{ if(e.key==='ArrowLeft') left=false; if(e.key==='ArrowRight') right=false; });
+
+      function step(){
+        if(left) paddle.x -= 8;
+        if(right) paddle.x += 8;
+        paddle.x = Math.max(0, Math.min(w - paddle.w, paddle.x));
+        ball.x += ball.vx; ball.y += ball.vy;
+        // wall
+        if(ball.x - ball.r < 0 || ball.x + ball.r > w) ball.vx *= -1;
+        if(ball.y - ball.r < 0) ball.vy *= -1;
+        // bottom (reset)
+        if(ball.y - ball.r > h){ ball.x = w/2; ball.y = h/2; ball.vx = 4; ball.vy = -4; }
+        // paddle collision
+        if(ball.x > paddle.x && ball.x < paddle.x + paddle.w && ball.y + ball.r > paddle.y){
+          ball.vy *= -1; ball.y = paddle.y - ball.r - 1;
+          // modify vx based on hit position
+          const hit = (ball.x - (paddle.x + paddle.w/2)) / (paddle.w/2);
+          ball.vx += hit * 1.5;
+        }
+        // bricks
+        for(const b of bricks){
+          if(!b.alive) continue;
+          if(ball.x > b.x && ball.x < b.x + b.w && ball.y - ball.r < b.y + b.h && ball.y + ball.r > b.y){
+            b.alive = false; ball.vy *= -1; break;
+          }
+        }
+        render();
+        modalEl._stopRAF = requestAnimationFrame(step);
+      }
+
+      function render(){
+        ctx.fillStyle = '#04060a'; ctx.fillRect(0,0,w,h);
+        ctx.fillStyle = '#ffb703';
+        bricks.forEach(b=>{ if(b.alive){ ctx.fillStyle = '#ffb703'; ctx.fillRect(b.x,b.y,b.w,b.h); }});
+        ctx.fillStyle = '#00d1b2'; ctx.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);
+        ctx.beginPath(); ctx.fillStyle = '#ffd166'; ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+      }
+
+      step();
+    }
+
+    // Accessibility: ensure modal closes on page unload
+    window.addEventListener('beforeunload', ()=>{ if(modalEl) closeModal(); });
+  </script>
+</body>
+</html>
